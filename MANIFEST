@@ -1,0 +1,22 @@
+Build.PL
+Changes
+MANIFEST
+META.yml # Will be created by "make dist"
+README
+lib/Games/Tournament/RoundRobin.pm
+lib/Games/League/Member.pm
+t/00.load.t
+t/index.t
+t/indexesInRound.t
+t/meeting.t
+t/meetings.t
+t/member.t
+t/membersInRound.t
+t/new.t
+t/partner.t
+t/partners.t
+t/pod-coverage.t
+t/pod.t
+t/rounds.t
+t/roundsInTournament.t
+Makefile.PL

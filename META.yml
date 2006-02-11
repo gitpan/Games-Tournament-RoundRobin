@@ -1,0 +1,17 @@
+---
+name: Games-Tournament-RoundRobin
+version: 0.01
+author:
+  - Dr Bean <drbean@cpan.org>
+abstract: Round-Robin Tournament Schedule Pairings
+license: perl
+requires:
+  Test::More: 0
+provides:
+  Games::League::Member:
+    file: lib/Games/League/Member.pm
+    version: 0.01
+  Games::Tournament::RoundRobin:
+    file: lib/Games/Tournament/RoundRobin.pm
+    version: 0.01
+generated_by: Module::Build version 0.26
