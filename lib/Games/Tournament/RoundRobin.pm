@@ -1,30 +1,29 @@
 package Games::Tournament::RoundRobin;
 
-# Last Edit: 2006  2月 11, 07時57分02秒
-# $Id: /sched/trunk/lib/Games/Tournament/RoundRobin.pm 515 2006-02-10T23:06:55.230562Z dv  $
+# Last Edit: 2009  3月 07, 14時35分49秒
 
 use warnings;
 use strict;
 
 =head1 NAME
 
-Games::Tournament::RoundRobin - Round-Robin Tournament Schedule Pairings 
+Games::Tournament::RoundRobin - Round-Robin Tournament Schedule Pairings
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
-    $schedule = Games::Tournament::RoundRobin->new;
+	$schedule = Games::Tournament::RoundRobin->new;
 
-    $pairings = $schedule->indexesInRound($roundm);
-    $round = $schedule->meeting($member1, [$member2, $member3]);
-    ...
+	$pairings = $schedule->indexesInRound($roundm);
+	$round = $schedule->meeting($member1, [$member2, $member3]);
+	...
 
 =head1 DESCRIPTION
 
@@ -40,16 +39,18 @@ Installing this module requires Module::Build.
 
 =head2 new
 
- Games::Tournament::RoundRobin->new( v => 5, league => ['Ha', 'Be', 'He'])
- Games::Tournament::RoundRobin->new( league => {A => $a, B => $b, C => $c})
+	Games::Tournament::RoundRobin->new( v => 5, league => [qw/Ha Be He/])
+	Games::Tournament::RoundRobin->new( league => {A => $a, B => $b})
 
-where v (optional) is the number of league members, and league (optional) is a list (or a hash) reference to the individual unique league members. One of v, or league (which takes precedence) is necessary, and if league is not given, the members are identified by the numbers 0 .. n-1.
+Where v (optional) is the number of league members, and league (optional) is a list (or a hash) reference to the individual unique league members. One of v, or league (which takes precedence) is necessary, and if league is not given, the members are identified by the numbers 0 .. n-1.
 
 If the league is a list (or hash) of n objects, they should be instances of a class that overloads both string quoting with a 'name' method and arithmetical operations with an 'index' method. The index method, called on the n objects in order, should return the n numbers, 0 .. n-1, and in that order if they are presented as an array. If they are presented as a hash, the hash is stored internally as an array and the keys are discarded.
 
 If the league is a list of strings or numbers, indexes are constructed for the values on the basis of their positions in the list, and if a hash of strings or numbers, on the basis of the lexicographic order of their keys. Each string is expected to be unique.
 
 If n is odd, an additional n-1, 'Bye' or object (a Games::League::Member object, by default) member, depending on the type of the first member in the league, is added at the end and n is increased by 1.
+
+TODO This was not such a good idea. v should not change if it is odd. That is the size of the league is the number of real members. The Bye member should not be included. This will require some refactoring.
 
 =cut 
 
@@ -70,9 +71,9 @@ sub new
 			$members->[$_]->index == $_ or warn 
 		"Index of ${_}th member is $members->[$_]->{index}, not $_,"
 							foreach ( 0 .. $n-1 );
-		$memberClass ||= 'Games::League::Member';
-		push @$members, $memberClass->new(
-		index => $n++, name => 'Bye' ) if $n%2;
+			$memberClass ||= 'Games::League::Member';
+			push @$members, $memberClass->new(
+			index => $n++, name => 'Bye' ) if $n%2;
 		}
 		elsif ($members->[0] =~ m/^\d+$/)
 		{
@@ -127,7 +128,7 @@ sub _hash2array
 
 	$schedule->indexesInRound($m)
 
-Returns an array reference of the pairings in round $m. This method is useful if you are using numbers to represent your league members. It is not so useful if you are using strings or objects and you don't know their index numbers. Positions in the array represent members. The values represent their partners. Each member is thus represented twice.
+Returns an array reference of the pairings in round $m. This method is useful if you are using numbers to represent your league members. It is not so useful if you are using strings or objects and you don't know their index numbers.  Positions in the array represent members.  The values represent their partners.  Each member is thus represented twice.
 
 =cut
 
@@ -196,7 +197,7 @@ sub partner
 
 	$schedule->membersInRound($m)
 
-Returns an hash reference of the pairings in round $m. This method is useful if you are using strings or objects. Keys in the hash represent league members. If the league members are objects, their names are used as keys. If 2 names are the same, the names are changed to $name.1, $name.2 etc. The values are their partners. Each player is thus represented twice.
+Returns an hash reference of the pairings in round $m. This method is useful if you are using strings or objects. Keys in the hash represent league members. If the league members are objects, their names are used as keys. If 2 names are the same, the names are changed to ${name}1, ${name}2 etc. The values are their partners. Each player is thus represented twice.
 
 =cut
 
@@ -220,8 +221,64 @@ sub membersInRound
 		my $partner = $indexes[$i];
 		$partner = $self->member($partner);
 		$pairings{$member} = $partner;
-	 }
+	}
 	return \%pairings;
+}
+
+=head2 wholeSchedule
+
+	$schedule->wholeSchedule();
+
+Returns a reference to an array of arrays, with each of the latter 2-element arrays representing the players in each match in each round.  Thus, you can iterate through the top-level array and inner-loop through the lower-level array and print the schedule as it has to be.
+
+This does not work with numbers as the names of the members and also not with "v >= n".
+
+=cut
+
+sub wholeSchedule
+{
+	my $self = shift;
+	my @schedule;
+	for my $i ( 1 .. $self->rounds ) {
+		my @pairings = @{ $self->indexesInRound($i) };
+		my @round;
+		for my $member ( 0 .. $#pairings ) {
+			next unless exists $pairings[$member];
+			my $partner = $pairings[$member];
+			delete $pairings[$partner];
+			push @round, [ $self->member($member),
+					$self->member($partner) ];
+		}
+		push @schedule, \@round;
+	}
+	return \@schedule;
+}
+
+=head2 byelessSchedule
+
+	$schedule->byelessSchedule();
+
+Returns a reference to an array of arrays.  The arrays are the same as returned by C<wholeSchedule> without the "Byes," so you can iterate through them and print the schedule as it has to be.
+
+This does not work with numbers as the names of the members and also not with "v >= n".
+
+=cut
+
+sub byelessSchedule
+{
+	my $self = shift;
+	my $schedule = $self->wholeSchedule;
+	my @byeless;
+	for my $round ( @$schedule ) {
+		my @matches;
+		for my $match ( @$round ) {
+			my @contestants = @$match;
+			push @matches, $match unless
+					grep { $_ eq 'Bye' } @contestants;
+		}
+		push @byeless, \@matches;
+	}
+	return \@byeless;
 }
 
 =head2 memberSchedule
@@ -356,6 +413,28 @@ sub member
 	}
 }
 
+=head2 hasBye
+
+	$schedule->hasBye($index)
+
+Returns an array reference of all the partners of the $indexed member, excluding the 'Bye' member. Don't use this if you have no 'Bye' member, as it just leaves off the last member.
+
+=cut
+
+sub hasBye
+{
+	my $self = shift;
+	my $index = shift;
+	my $members = $self->{league};
+	my @partners;
+	foreach my $member ( @$members )
+	{
+		push @partners, $member unless
+			($member == $index or $member == $self->size-1);
+	}
+	return \@partners;
+}
+
 =head2 partners
 
 	$schedule->partners($index)
@@ -391,7 +470,7 @@ sub partners
 
 	$schedule->realPartners($index)
 
-	Returns an array reference of all the partners of the $indexed member, excluding the 'Bye' member. Don't use this if you have no 'Bye' member, as it just leaves off the last member.
+Returns an array reference of all the partners of the $indexed member, excluding the 'Bye' member. Don't use this if you have no 'Bye' member, as it just leaves off the last member.
 
 =cut
 
@@ -403,7 +482,8 @@ sub realPartners
 	my @partners;
 	foreach my $member ( @$members )
 	{
-		push @partners, $member unless ($member == $index or $member == $self->size-1);
+		push @partners, $member unless
+			($member == $index or $member == $self->size-1);
 	}
 	return \@partners;
 }
@@ -438,21 +518,17 @@ sub rounds
 
 =head1 AUTHOR
 
-Dr Bean, C<< <drbean@cpan.org> >>
+Dr Bean, C<< <drbean at (ie, the at sign) cpan dot (ie the dot sign) org> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to
-C<bug-games-tournament-roundrobin@rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Games-Tournament-RoundRobin>.
-I will be notified, and then you'll automatically
-be notified of progress on your bug as I make changes.
+Please report any bugs or feature requests to C<bug-games-tournament-roundrobin@rt.cpan.org>, or through the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Games-Tournament-RoundRobin>.  I will be notified, and then you'll automatically be notified of progress on your bug as I make changes.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc Games::Tournament::RoundRobin
+	perldoc Games::Tournament::RoundRobin
 
 You can also look for information at:
 
@@ -478,15 +554,15 @@ L<http://search.cpan.org/dist/Games-Tournament-RoundRobin>
 
 =head1 ACKNOWLEDGEMENTS
 
-The algorithm saw perl attention on Mark Jason Dominus's Quiz of the Week in January 2005.  L<http://perl.plover.com/~alias/list.cgi?1:msp:2343>
+The algorithm saw perl attention on Mark Jason Dominus's Quiz of the Week in January 2005, last seen on the Internet at  L<http://perl.plover.com/~alias/list.cgi?1:msp:2343>
 
+The wholeSchedule method is due to Richard Möhn.
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2006 Dr Bean, All Rights Reserved.
+Copyright 2008 Dr Bean, All Rights Reserved.
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
 
 =cut
 

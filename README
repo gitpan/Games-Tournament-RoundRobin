@@ -1,4 +1,4 @@
-Games-RoundRobin-Tournament version 0.01
+Games-RoundRobin-Tournament version 0.02
 
 Round-Robin Tournament Schedule Pairings
 
@@ -9,12 +9,12 @@ tournament.
 
 This is a completely perl module. There is a dependency on Module::Build.
 
-This is version 0.01, the first version uploaded to CPAN.
+This is version 0.02, the second version uploaded to CPAN.
 
 INSTALLATION
 
-The installation depends on Module::Build, rather than ExtUtils::MakeMaker.
-If you try the Makefile.PL, it will ask you if you want to install
+The installation depended on Module::Build, rather than ExtUtils::MakeMaker.
+Now you can try the Makefile.PL, if you don't want to install
 Module::Build.
 
 To install this module, run the following commands:

@@ -19,4 +19,6 @@ t/pod-coverage.t
 t/pod.t
 t/rounds.t
 t/roundsInTournament.t
+t/wholeSchedule.t
+t/wholeScheduleWithoutByes.t
 Makefile.PL
